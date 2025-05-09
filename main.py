@@ -1,33 +1,44 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer
-from typing import Optional
+from fastapi import FastAPI
 import uvicorn
-
-from core.config import settings
-from routers import auth, messaging
+import logging
 from services.telegram import TelegramService
+import asyncio
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Telegram Proxy API")
 
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-# Routers
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(messaging.router, prefix="/messaging", tags=["messaging"])
+async def initialize_telegram():
+    """Отдельная задача для инициализации Telegram"""
+    try:
+        await TelegramService.init()
+    except Exception as e:
+        logger.error(f"Telegram initialization failed: {e}")
+        raise
 
 
 @app.on_event("startup")
 async def startup():
-    await TelegramService.init()
+    # Запускаем инициализацию в фоне без ожидания
+    asyncio.create_task(initialize_telegram())
+
+
+@app.get("/health")
+async def health_check():
+    try:
+        await TelegramService.wait_ready()
+        return {"status": "ok", "telegram": "connected"}
+    except Exception:
+        return {"status": "ok", "telegram": "connecting"}
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )

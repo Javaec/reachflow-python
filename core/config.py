@@ -1,22 +1,18 @@
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = "secret-key-for-sessions"
-    TELEGRAM_API_ID: int  # Должно быть числом!
+    SECRET_KEY: str = "your-secret-key"
+    TELEGRAM_API_ID: int
     TELEGRAM_API_HASH: str
-    SESSION_STRING: str | None = None
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 минут время жизни токена
+    SESSION_STRING: Optional[str] = None
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 часа
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
 
 
-# Инициализация с обработкой ошибок
-try:
-    settings = Settings()
-except Exception as e:
-    print(f"Ошибка загрузки конфигурации: {e}")
-    raise
+settings = Settings()
