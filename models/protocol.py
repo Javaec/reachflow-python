@@ -1,12 +1,14 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
 from datetime import datetime
+
 
 class TelegramUser(BaseModel):
     id: int
     first_name: str
     last_name: Optional[str] = None
     username: Optional[str] = None
+
 
 class TelegramChat(BaseModel):
     id: int
@@ -16,6 +18,7 @@ class TelegramChat(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
 
+
 class TelegramMessage(BaseModel):
     id: int
     chat: TelegramChat
@@ -23,7 +26,8 @@ class TelegramMessage(BaseModel):
     text: Optional[str] = None
     date: datetime
 
-    class Config:
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             datetime: lambda v: v.timestamp()
         }
+    )
