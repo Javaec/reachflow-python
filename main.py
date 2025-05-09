@@ -1,44 +1,77 @@
-from fastapi import FastAPI
-import uvicorn
+from fastapi import FastAPI, status
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import logging
+from typing import AsyncIterator
+from core.config import settings
 from services.telegram import TelegramService
-import asyncio
+from routers import auth, messaging
+import os
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Telegram Proxy API")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Управление жизненным циклом приложения"""
+    logger.info("Application starting...")
 
-async def initialize_telegram():
-    """Отдельная задача для инициализации Telegram"""
     try:
-        await TelegramService.init()
+        # Инициализация сервисов
+        await TelegramService.initialize()
+        logger.info("Services initialized")
+
+        yield
+
     except Exception as e:
-        logger.error(f"Telegram initialization failed: {e}")
+        logger.error(f"Startup failed: {e}")
         raise
 
-
-@app.on_event("startup")
-async def startup():
-    # Запускаем инициализацию в фоне без ожидания
-    asyncio.create_task(initialize_telegram())
-
-
-@app.get("/health")
-async def health_check():
-    try:
-        await TelegramService.wait_ready()
-        return {"status": "ok", "telegram": "connected"}
-    except Exception:
-        return {"status": "ok", "telegram": "connecting"}
+    finally:
+        logger.info("Application shutting down...")
+        await TelegramService.shutdown()
+        logger.info("Shutdown complete")
 
 
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
+def create_app() -> FastAPI:
+    """Фабрика приложений"""
+    app = FastAPI(
+        title="Telegram Web Client",
+        description="Full-featured Telegram web interface",
+        version=settings.APP_VERSION if hasattr(settings, 'APP_VERSION') else "1.0.0",
+        lifespan=lifespan,
+        docs_url="/docs" if not os.getenv("PRODUCTION") else None,
+        redoc_url=None
     )
+
+    # Middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Роутеры
+    app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+    app.include_router(messaging.router, prefix="/api", tags=["Messaging"])
+
+    # Health check
+    @app.get("/health", status_code=status.HTTP_200_OK, tags=["Utility"])
+    async def health_check():
+        return {
+            "status": "healthy",
+            "services": {
+                "telegram": await TelegramService.is_ready()
+            }
+        }
+
+    return app
+
+
+app = create_app()

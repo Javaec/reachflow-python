@@ -1,0 +1,11 @@
+{
+  "build": {
+    "builder": "nixpacks",
+    "config": {
+      "startCommand": "python run.py"
+    }
+  },
+  "deploy": {
+    "startCommand": "python run.py"
+  }
+}

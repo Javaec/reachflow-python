@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
@@ -12,11 +12,9 @@ class TelegramUser(BaseModel):
 
 class TelegramChat(BaseModel):
     id: int
-    type: str  # "private", "group", "supergroup" or "channel"
+    type: str
     title: Optional[str] = None
     username: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
 
 
 class TelegramMessage(BaseModel):
@@ -25,9 +23,3 @@ class TelegramMessage(BaseModel):
     from_user: Optional[TelegramUser] = None
     text: Optional[str] = None
     date: datetime
-
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.timestamp()
-        }
-    )

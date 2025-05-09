@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Telegram QR Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .qr-container {
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            max-width: 400px;
+            background: #f9f9f9;
+        }
+
+        .instructions {
+            margin: 20px 0;
+            text-align: left;
+            padding: 0 20px;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .authenticated {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .not-authenticated {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+<h1>Telegram Web Client</h1>
+<div class="qr-container">
+    <h2>Scan QR Code</h2>
+    <img src="data:image/png;base64,{{ qr_code }}" width="300">
+
+    <div class="instructions">
+        <h3>How to login:</h3>
+        <ol>
+            <li>Open Telegram on your phone</li>
+            <li>Go to Settings > Devices > Link Desktop Device</li>
+            <li>Scan the QR code above</li>
+        </ol>
+    </div>
+
+    <div id="status" class="status not-authenticated">
+        Waiting for authentication...
+    </div>
+</div>
+
+<script>
+    // Автоматическая проверка статуса
+    async function checkStatus() {
+        try {
+            const response = await fetch('/auth/status');
+            const data = await response.json();
+
+            const statusDiv = document.getElementById('status');
+            if (data.authenticated) {
+                statusDiv.textContent = "Successfully authenticated!";
+                statusDiv.className = "status authenticated";
+                window.location.href = '/';
+            } else {
+                setTimeout(checkStatus, {
+                {
+                    refresh_interval
+                }
+            })
+                ;
+            }
+        } catch (error) {
+            console.error('Status check failed:', error);
+            setTimeout(checkStatus, {
+            {
+                refresh_interval
+            }
+        })
+            ;
+        }
+    }
+
+    // Начинаем проверку статуса
+    checkStatus();
+</script>
+</body>
+</html>
